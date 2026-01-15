@@ -4,16 +4,16 @@
 
 SoftwareSerial mySerial(10, 11); // RX, TX
 
-int currentTrack = 1;       // current playing song's number
 const int TOTAL_TRACKS = 3; // total songs in the SD card
-
-int isPlaying = 0;
-
-int prevT = 0;
-int cnt = 0;
 
 // Threshold
 const int THRESHOLD = 400;
+
+struct PlayerState {
+  int currentTrack;
+};
+
+PlayerState player = {1};
 
 void setup() {
   // pressure sensor
@@ -48,6 +48,8 @@ void loop() {
 } 
 
 bool checkTouch() {
+  static int cnt = 0;
+
   int pres_data;
   pres_data = readSensor();
   Serial.println(pres_data);
@@ -72,13 +74,13 @@ int readSensor() {
 }
 
 void playSound() {
-  if (currentTrack > TOTAL_TRACKS) {
-    currentTrack = 1;
+  if (player.currentTrack > TOTAL_TRACKS) {
+    player.currentTrack = 1;
   }
 
   Serial.println("Play");
-  mp3_play(currentTrack);
+  mp3_play(player.currentTrack);
   delay(600);
 
-  currentTrack++;
+  player.currentTrack++;
 }
