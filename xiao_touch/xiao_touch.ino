@@ -1,8 +1,13 @@
 #include <DFPlayerMini_Fast.h>
 #include <SoftwareSerial.h>
 
-#define PIN_MP3_RX 7
-#define PIN_MP3_TX 6
+#define PIN_MP3_RX 6
+#define PIN_MP3_TX 7
+
+// RX means Receive, TX means Transmit
+
+// DFPlayer's TX -> XIAO's RX (PIN6)
+// DFPlayer's RX <- XIAO's TX (PIN7)
 
 SoftwareSerial ss_mp3_player(PIN_MP3_RX, PIN_MP3_TX);
 DFPlayerMini_Fast mp3_player;
@@ -48,13 +53,18 @@ void setup() {
 }
 
 void loop() {
-  bool isTouched = false;
+  
+  // bool isTouched = false;
 
-  isTouched = checkTouch();
+  // isTouched = checkTouch();
 
-  if (isTouched) {
-    playSound();
-  }
+  // if (isTouched) {
+  //   playSound();
+  // }
+
+  playSound();
+
+  delay(3000);
 }
 
 
