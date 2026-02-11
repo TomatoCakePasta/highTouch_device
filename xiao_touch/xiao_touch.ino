@@ -48,23 +48,19 @@ void setup() {
   delay(1000);
   mp3_player.play(1);
   delay(1000);
-  mp3_player.play(2);
+  mp3_player.play(3);
   delay(1000);
 }
 
 void loop() {
   
-  // bool isTouched = false;
+  bool isTouched = false;
 
-  // isTouched = checkTouch();
+  isTouched = checkTouch();
 
-  // if (isTouched) {
-  //   playSound();
-  // }
-
-  playSound();
-
-  delay(3000);
+  if (isTouched) {
+    playSound();
+  }
 }
 
 
@@ -75,7 +71,7 @@ bool checkTouch() {
   pres_data = readSensor();
   Serial.println(pres_data);
 
-  if (pres_data <= THRESHOLD) {
+  if (pres_data >= THRESHOLD) {
     cnt++;
   }
   else {
@@ -101,7 +97,7 @@ void playSound() {
 
   Serial.println("Play");
   mp3_player.play(player.currentTrack);
-  delay(600);
+  delay(300);
 
   player.currentTrack++;
 }
