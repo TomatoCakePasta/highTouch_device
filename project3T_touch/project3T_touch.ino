@@ -54,7 +54,7 @@ bool checkTouch() {
   pres_data = readSensor();
   Serial.println(pres_data);
 
-  if (pres_data <= THRESHOLD) {
+  if (pres_data > THRESHOLD) {
     cnt++;
   }
   else {
