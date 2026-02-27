@@ -2,7 +2,7 @@
 
 #include "SoftwareSerial.h"
 
-SoftwareSerial mySerial(10, 11); // RX, TX
+SoftwareSerial mySerial(11, 10); // RX, TX
 
 const int TOTAL_TRACKS = 3; // total songs in the SD card
 
@@ -24,10 +24,15 @@ void setup() {
   mp3_set_volume(50);
   delay(1000);
   mp3_play(1);
+  Serial.println("Play1");
+
   delay(1000);
   mp3_play(2);
+  Serial.println("Play2");
+
   delay(1000);
   mp3_play(3);
+  Serial.println("Play3");
   delay(1200);
 
   mp3_stop(); // 初期状態は停止

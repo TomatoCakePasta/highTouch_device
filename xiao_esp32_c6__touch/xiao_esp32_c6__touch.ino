@@ -1,7 +1,7 @@
 #include <DFPlayerMini_Fast.h>
 
-#define PIN_MP3_RX 7  // DFPlayer TX → XIAO RX
-#define PIN_MP3_TX 6   // DFPlayer RX ← XIAO TX
+#define PIN_MP3_RX D6  // DFPlayer TX → XIAO RX
+#define PIN_MP3_TX D7   // DFPlayer RX ← XIAO TX
 
 HardwareSerial mp3Serial(1);   // UART1を使用
 DFPlayerMini_Fast mp3_player;
@@ -14,6 +14,10 @@ struct PlayerState {
 };
 
 PlayerState player = {1};
+
+// ========== IMPORTANT ===========
+// CLOSE Serial Monitor
+// OR You Can't use RX/TX pins
 
 void setup() {
   Serial.begin(115200);
@@ -35,7 +39,7 @@ void setup() {
 
   Serial.println("DFPlayer ready");
 
-  mp3_player.volume(20);
+  mp3_player.volume(30);
   delay(1000);
 
   mp3_player.play(1);
@@ -54,7 +58,7 @@ bool checkTouch() {
   int pres_data = analogRead(A0);
   Serial.println(pres_data);
 
-  if (pres_data <= THRESHOLD) {
+  if (pres_data < THRESHOLD) {
     cnt++;
   } else {
     cnt = 0;
