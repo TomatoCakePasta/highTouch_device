@@ -4,17 +4,18 @@
 #define PIN_MP3_RX 6
 #define PIN_MP3_TX 7
 
-// RX means Receive, TX means Transmit
-
-// DFPlayer's TX -> XIAO's RX (PIN6)
-// DFPlayer's RX <- XIAO's TX (PIN7)
-
 SoftwareSerial ss_mp3_player(PIN_MP3_RX, PIN_MP3_TX);
 DFPlayerMini_Fast mp3_player;
 
-const int TOTAL_TRACKS = 3; // total songs in the SD card
+#define THRESHOLD 600
+#define LONG_PRESS_MS 3000
 
-const int THRESHOLD = 600;
+enum PlayMode {
+  NORMAL,
+  MELODY
+};
+
+PlayMode playMode = NORMAL;
 
 struct PlayerState {
   int currentTrack;
@@ -22,11 +23,29 @@ struct PlayerState {
 
 PlayerState player = {1};
 
+// 演奏モード用メロディ（/ は除外）
+const int melody[] = {
+  3,3,4,5, 5,4,3,2, 1,1,2,3, 3,2,2,
+  3,3,4,5, 5,4,3,2, 1,1,2,3, 2,1,1
+};
+
+const int harmony[] = {
+  1,1,2,3, 3,2,1,6, 3,3,4,5, 4, 3,3
+};
+
+const int MELODY_LEN = sizeof(melody) / sizeof(melody[0]);
+const int HARMONY_LEN = sizeof(harmony) / sizeof(harmony[0]);
+int melodyIdx = 0;
+
+const bool HARMONY_MODE = true;
+
+// 押下管理
+unsigned long pressStart = 0;
+bool isPressing = false;
+
 void setup() {
   Serial.begin(9600);
   delay(1000);
-
-  Serial.println("Start");
 
   ss_mp3_player.begin(9600);
   delay(1000);
@@ -37,67 +56,100 @@ void setup() {
   }
 
   mp3_player.reset();
-  delay(1500);
+  delay(1000);
+  mp3_player.volume(30);
+  delay(1000);
+
+  for (int i = 1; i <= 10; i++) {
+    mp3_player.playFromMP3Folder(i);
+    Serial.println(i);
+    delay(700);
+  }
 
   Serial.println("DFPlayer ready");
-
-  mp3_player.volume(30);
-  delay(1500);
-
-  mp3_player.play(1);
-  delay(1000);
-  mp3_player.play(1);
-  delay(1000);
-  mp3_player.play(3);
-  delay(1000);
 }
 
 void loop() {
-  
-  bool isTouched = false;
+  handleTouch();
+}
 
-  isTouched = checkTouch();
+void handleTouch() {
+  int pres = readSensor();
 
-  if (isTouched) {
-    playSound();
+  if (pres >= THRESHOLD) {
+    if (!isPressing) {
+      isPressing = true;
+      pressStart = millis();
+    }
+
+    // 長押し判定
+    if (millis() - pressStart >= LONG_PRESS_MS) {
+      toggleMode();
+      isPressing = false;
+      delay(500); // チャタリング防止
+    }
+  }
+  else {
+    if (isPressing) {
+      // 短押し
+      playSound();
+    }
+    isPressing = false;
   }
 }
 
-
-bool checkTouch() {
-  static int cnt = 0;
-
-  int pres_data;
-  pres_data = readSensor();
-  Serial.println(pres_data);
-
-  if (pres_data >= THRESHOLD) {
-    cnt++;
+void toggleMode() {
+  if (playMode == NORMAL) {
+    playMode = MELODY;
+    melodyIdx = 0;
+    Serial.println("→ MELODY MODE");
   }
   else {
-    cnt = 0;
+    playMode = NORMAL;
+    Serial.println("→ NORMAL MODE");
+  }
+}
+
+void playSound() {
+  if (playMode == NORMAL) {
+    if (player.currentTrack > 3) {
+      player.currentTrack = 1;
+    }
+
+    mp3_player.playFromMP3Folder(player.currentTrack);
+    Serial.print("Normal Play: ");
+    Serial.println(player.currentTrack);
+    player.currentTrack++;
+  }
+  else {
+    int track = 0;
+
+    if (HARMONY_MODE) {
+      track = harmony[melodyIdx] + 5;
+
+
+      melodyIdx++;
+      if (melodyIdx >= HARMONY_LEN) {
+        melodyIdx = 0;
+      }
+    }    
+    else {
+      track = melody[melodyIdx] + 5;
+
+      melodyIdx++;
+      if (melodyIdx >= MELODY_LEN) {
+        melodyIdx = 0;
+      }
+    }
+    mp3_player.playFromMP3Folder(track);
+
+    Serial.print("Melody Play: ");
+    Serial.println(track);
   }
 
-  if (cnt > 1) {
-    cnt = 0;
-    return true;
-  }
-
-  return false;
+  delay(300); // 再生間隔
 }
 
 int readSensor() {
   return analogRead(A0);
-}
-
-void playSound() {
-  if (player.currentTrack > TOTAL_TRACKS) {
-    player.currentTrack = 1;
-  }
-
-  Serial.println("Play");
-  mp3_player.play(player.currentTrack);
-  delay(300);
-
-  player.currentTrack++;
 }
