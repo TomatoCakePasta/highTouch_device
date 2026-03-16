@@ -2,7 +2,7 @@
 
 #include "SoftwareSerial.h"
 
-SoftwareSerial mySerial(11, 10); // RX, TX
+SoftwareSerial mySerial(10, 11); // RX, TX
 
 const int TOTAL_TRACKS = 3; // total songs in the SD card
 
@@ -20,6 +20,8 @@ void setup() {
   pinMode(A0, INPUT);
 
   mySerial.begin(9600);
+  Serial.begin(9600);
+
   mp3_set_serial(mySerial);
   mp3_set_volume(50);
   delay(1000);
@@ -36,8 +38,6 @@ void setup() {
   delay(1200);
 
   mp3_stop(); // 初期状態は停止
-
-  Serial.begin(9600);
 }
 
 void loop() {
@@ -57,7 +57,7 @@ bool checkTouch() {
 
   int pres_data;
   pres_data = readSensor();
-  Serial.println(pres_data);
+  // Serial.println(pres_data);
 
   if (pres_data > THRESHOLD) {
     cnt++;

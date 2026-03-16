@@ -7,7 +7,18 @@ HardwareSerial mp3Serial(1);   // UART1を使用
 DFPlayerMini_Fast mp3_player;
 
 const int TOTAL_TRACKS = 3;
-const int THRESHOLD = 600;
+#define THRESHOLD 600
+
+#define LONG_PRESS_MS 3000
+
+bool readyForNext = false;
+
+enum PlayMode {
+  NORMAL,
+  MELODY
+};
+
+PlayMode playMode = NORMAL;
 
 struct PlayerState {
   int currentTrack;
@@ -15,12 +26,32 @@ struct PlayerState {
 
 PlayerState player = {1};
 
+// melody
+const int melody[] = {
+  3,3,4,5, 5,4,3,2, 1,1,2,3, 3,2,2,
+  3,3,4,5, 5,4,3,2, 1,1,2,3, 2,1,1
+};
+
+const int harmony[] = {
+  1,1,2,3, 3,2,1,6, 3,3,4,5, 4, 3,3
+};
+
+const int MELODY_LEN = sizeof(melody) / sizeof(melody[0]);
+const int HARMONY_LEN = sizeof(harmony) / sizeof(harmony[0]);
+int melodyIdx = 0;
+
+const bool HARMONY_MODE = true;
+
+// mode change detection
+unsigned long pressStart = 0;
+bool isPressing = false;
+
 // ========== IMPORTANT ===========
 // CLOSE Serial Monitor
 // OR You Can't use RX/TX pins
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   delay(1000);
 
   Serial.println("Start");
@@ -39,16 +70,62 @@ void setup() {
 
   Serial.println("DFPlayer ready");
 
-  mp3_player.volume(30);
+  mp3_player.volume(25);
   delay(1000);
 
-  mp3_player.play(1);
+  mp3_player.playFromMP3Folder(1);
+  delay(1000);
 }
 
 void loop() {
 
-  if (checkTouch()) {
-    playSound();
+  handleTouch();
+
+  // if (checkTouch()) {
+  //   playSound();
+  // }
+}
+
+void handleTouch() {
+  int pres = readSensor();
+
+  if (pres <= 10) {
+    readyForNext = true;
+  }
+
+  if (pres >= THRESHOLD) {
+    if (!isPressing) {
+      isPressing = true;
+      pressStart = millis();
+    }
+
+    // hold detection
+    if (millis() - pressStart >= LONG_PRESS_MS) {
+      toggleMode();
+      isPressing = false;
+
+      // guard chattering
+      delay(500);
+    }
+    else {
+      if (isPressing && readyForNext) {
+        playSound();
+        readyForNext = false;
+        isPressing = false;
+      }
+    }
+  }
+}
+
+void toggleMode() {
+  if (playMode == NORMAL) {
+    playMode = MELODY;
+    melodyIdx = 0;
+    Serial.println("to MELODY MODE");
+  }
+  else {
+    playMode = NORMAL;
+    Serial.println("NORMAL MODE");
   }
 }
 
@@ -58,7 +135,7 @@ bool checkTouch() {
   int pres_data = analogRead(A0);
   Serial.println(pres_data);
 
-  if (pres_data < THRESHOLD) {
+  if (pres_data > THRESHOLD) {
     cnt++;
   } else {
     cnt = 0;
@@ -73,13 +150,48 @@ bool checkTouch() {
 }
 
 void playSound() {
-  if (player.currentTrack > TOTAL_TRACKS) {
-    player.currentTrack = 1;
+  if (playMode == NORMAL) {
+    if (player.currentTrack > TOTAL_TRACKS) {
+      player.currentTrack = 1;
+    }
+
+    Serial.println("Play");
+    mp3_player.playFromMP3Folder(player.currentTrack);
+    delay(300);
+
+    player.currentTrack++;
+  }
+  // MELODY MODE
+  else {
+    int track = 0;
+
+    if (HARMONY_MODE) {
+      track = harmony[melodyIdx] + 5;
+
+      melodyIdx++;
+      if (melodyIdx >= MELODY_LEN) {
+        melodyIdx = 0;
+      }
+    }
+    else {
+      track = melody[melodyIdx] + 5;
+
+      melodyIdx++;
+
+      if (melodyIdx >= MELODY_LEN) {
+        melodyIdx = 0;
+      }
+    }
+    
+    mp3_player.playFromMP3Folder(track);
+
+    Serial.print("Melody Play: ");
+    Serial.println(track);
   }
 
-  Serial.println("Play");
-  mp3_player.play(player.currentTrack);
   delay(300);
+}
 
-  player.currentTrack++;
+int readSensor() {
+  return analogRead(A0);
 }
